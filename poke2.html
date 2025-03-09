@@ -12,7 +12,7 @@
       justify-content: center;
       align-items: center;
       height: 100vh;
-      background-color: #f8c9d6; /* Light pink background */
+      background-color: #e2c4ac; /* Light pink background */
       margin: 0;
       font-family: 'Poppins', sans-serif; /* Apply Poppins font */
     }
@@ -29,7 +29,7 @@
     /* Header and title with pink text */
     h1 {
       font-size: 2.5em;
-      color: #d45d6a; /* Pinkish color */
+      color: #826450; /* Pinkish color */
       margin-bottom: 20px;
       font-weight: 600; /* Make the title bolder */
     }
@@ -38,8 +38,9 @@
     #pokemonName {
       font-size: 2em;
       margin-bottom: 10px;
-      color: #d45d6a; /* Pinkish color */
+      color: #826450; /* Pinkish color */
       font-weight: 600; /* Make the Pokémon name bold */
+      display: none; /* Initially hidden */
     }
 
     /* Pokémon image styling with rounded corners and pink border */
@@ -48,12 +49,14 @@
       max-width: 300px;
       border-radius: 10px;
       box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-      border: 5px solid #f8c9d6; /* Light pink border around the image */
+      border: 5px solid #826450; /* Light pink border around the image */
+      display: block; /* Ensure it behaves like a block-level element */
+      margin: 20px auto; /* Center the image */
     }
 
     /* Add a pink button for refreshing the Pokémon */
     button {
-      background-color: #d45d6a; /* Pink button */
+      background-color: #d54354; /* Pink button */
       color: white;
       padding: 10px 20px;
       border: none;
@@ -67,12 +70,32 @@
     button:hover {
       background-color: #c34455; /* Darker pink on hover */
     }
+
+    /* Disabled button */
+    button:disabled {
+      background-color: #cccccc; /* Gray button when disabled */
+      cursor: not-allowed;
+    }
+
+    /* Views left display */
+    #remainingViews {
+      margin-top: 20px;
+    }
+
+    /* Pokémon abilities section */
+    #pokemonAbilities {
+      margin-top: 10px;
+      font-size: 1.2em;
+      color: #826450;
+      display: none; /* Initially hidden */
+    }
+
   </style>
 </head>
 <body>
 
 <main class="container">
-  <h1>おすすめポケモン</h1>
+  <h1>今日のポケモン</h1>
   
   <div id="pokemon">
     <h2 id="pokemonName"></h2>
@@ -80,64 +103,135 @@
     <img id="pokemonImage" src="https://via.placeholder.com/300?text=No+Image" alt="ポケモンの画像">
   </div>
 
+  <!-- Pokémon abilities section -->
+  <div id="pokemonAbilities">
+    <h3>特性</h3>
+    <ul id="abilitiesList"></ul> <!-- List to show abilities -->
+  </div>
+
   <!-- Button to refresh Pokémon -->
-  <button onclick="location.reload()">もう一匹見る</button>
+  <button id="pokemonButton" onclick="loadNewPokemon()">?</button>
+  <p id="remainingViews">あと <span id="viewsLeft">3</span> 回見れます</p>
 </main>
 
 <script>
-  // ポケモンの名前を表示する要素を取得
-  let pokemonName = document.getElementById('pokemonName');
+  // Number of allowed views
+  let maxViews = 3;
+  let viewsLeft = maxViews; // Starting with 3 views
 
-  // ポケモンの画像を表示する要素を取得
-  let pokemonImage = document.getElementById('pokemonImage');
+  // Function to load a new Pokémon
+  function loadNewPokemon() {
+    // If the views are exhausted, disable the button
+    if (viewsLeft <= 0) {
+      document.getElementById('pokemonButton').disabled = true;
+      document.getElementById('pokemonButton').textContent = "これ以上見ることはできません";
+      return;
+    }
 
-  // ポケモンは現在898種
-  let pokemonNumber = Math.floor(Math.random() * 898) + 1;
+    // Update the remaining views display
+    viewsLeft--;
+    document.getElementById('viewsLeft').textContent = viewsLeft;
 
-  // Fetch the main Pokémon data
-  fetch(`https://pokeapi.co/api/v2/pokemon/${pokemonNumber}`)
-    .then(function (response) {
-      if (!response.ok) {
-        throw new Error(`Error fetching Pokémon data: ${response.statusText}`);
-      }
-      return response.json();
-    })
-    .then(function(data) {
-      console.log("Pokémon Data:", data); // Debugging: check the data structure
+    // Update button text to show "もう一匹見る" after the Pokémon is loaded
+    document.getElementById('pokemonButton').textContent = "もう一匹見る";
 
-      // Get the species URL to fetch the species information (including Japanese name)
-      const speciesUrl = data.species.url;
+    // Show Pokémon name and image
+    let pokemonName = document.getElementById('pokemonName');
+    let pokemonImage = document.getElementById('pokemonImage');
+    let pokemonAbilities = document.getElementById('pokemonAbilities');
+    let abilitiesList = document.getElementById('abilitiesList');
 
-      // Fetch species data to get the Japanese name
-      fetch(speciesUrl)
-        .then(function(speciesResponse) {
-          return speciesResponse.json();
-        })
-        .then(function(speciesData) {
-          console.log("Species Data:", speciesData); // Debugging: check the species data
+    // Hide the image, name, and abilities initially
+    pokemonName.style.display = 'none';
+    pokemonImage.style.display = 'none';
+    pokemonAbilities.style.display = 'none';
+    abilitiesList.innerHTML = ''; // Clear the previous abilities
 
-          // Find the Japanese name in the species data
-          const japaneseName = speciesData.names.find(name => name.language.name === 'ja');
-          
-          // Display the Japanese name or fall back to the English name
-          pokemonName.textContent = japaneseName ? japaneseName.name : data.name;
-        })
-        .catch(function(speciesError) {
-          console.error("Error fetching species data:", speciesError);
-          pokemonName.textContent = data.name; // Fallback to English name if species data is unavailable
-        });
+    // ポケモンは現在898種
+    let pokemonNumber = Math.floor(Math.random() * 898) + 1;
 
-      // Display the Pokémon image
-      const imageUrl = data.sprites.front_default;
+    // Fetch the main Pokémon data
+    fetch(`https://pokeapi.co/api/v2/pokemon/${pokemonNumber}`)
+      .then(function (response) {
+        if (!response.ok) {
+          throw new Error(`Error fetching Pokémon data: ${response.statusText}`);
+        }
+        return response.json();
+      })
+      .then(function(data) {
+        // Get the species URL to fetch the species information (including Japanese name)
+        const speciesUrl = data.species.url;
 
-      // If the image URL exists, use it; otherwise, show a placeholder
-      pokemonImage.src = imageUrl ? imageUrl : 'https://via.placeholder.com/300?text=No+Image';
-    })
-    .catch(function(error) {
-      console.error("Error fetching Pokémon data:", error);
-      pokemonName.textContent = "エラーが発生しました"; // Show an error message in case of failure
-      pokemonImage.src = 'https://via.placeholder.com/300?text=No+Image';
-    });
+        // Fetch species data to get the Japanese name
+        fetch(speciesUrl)
+          .then(function(speciesResponse) {
+            return speciesResponse.json();
+          })
+          .then(function(speciesData) {
+            // Find the Japanese name in the species data
+            const japaneseName = speciesData.names.find(name => name.language.name === 'ja');
+            
+            // Display the Japanese name or fall back to the English name
+            pokemonName.textContent = japaneseName ? japaneseName.name : data.name;
+
+            // Show the Pokémon name and image
+            pokemonName.style.display = 'block'; // Show the name
+            pokemonImage.style.display = 'block'; // Show the image
+          })
+          .catch(function(speciesError) {
+            console.error("Error fetching species data:", speciesError);
+            pokemonName.textContent = data.name; // Fallback to English name if species data is unavailable
+            pokemonName.style.display = 'block'; // Show the name
+            pokemonImage.style.display = 'block'; // Show the image
+          });
+
+        // Display the Pokémon image
+        const imageUrl = data.sprites.front_default;
+        pokemonImage.src = imageUrl ? imageUrl : 'https://via.placeholder.com/300?text=No+Image';
+
+        // Display Pokémon abilities
+        let abilities = data.abilities;
+        if (abilities && abilities.length > 0) {
+          abilitiesList.innerHTML = ''; // Clear the list
+
+          abilities.forEach(function(ability) {
+            // Fetch the Japanese name of the ability
+            fetch(ability.ability.url)
+              .then(function(abilityResponse) {
+                return abilityResponse.json();
+              })
+              .then(function(abilityData) {
+                // Find the Japanese name for the ability
+                const japaneseAbility = abilityData.names.find(name => name.language.name === 'ja');
+                const abilityName = japaneseAbility ? japaneseAbility.name : ability.ability.name;
+                
+                // Add each ability to the list
+                let listItem = document.createElement('li');
+                listItem.textContent = abilityName;
+                abilitiesList.appendChild(listItem);
+              })
+              .catch(function(error) {
+                console.error("Error fetching ability data:", error);
+              });
+          });
+
+          // Show the abilities section
+          pokemonAbilities.style.display = 'block';
+        }
+
+      })
+      .catch(function(error) {
+        console.error("Error fetching Pokémon data:", error);
+        pokemonName.textContent = "エラーが発生しました"; // Show an error message in case of failure
+        pokemonImage.src = 'https://via.placeholder.com/300?text=No+Image';
+        pokemonName.style.display = 'block'; // Show the name
+        pokemonImage.style.display = 'block'; // Show the image
+        pokemonAbilities.style.display = 'none'; // Hide abilities section on error
+      });
+  }
+
+  // Call the function to load the first Pokémon when the page loads
+  loadNewPokemon();
 </script>
 
 </body>
